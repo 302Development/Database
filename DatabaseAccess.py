@@ -1,5 +1,6 @@
 import mysql.connector as mariadb
 import json, urllib
+from datetime import datetime
 
 #select operator probobly isnt needed
 def exicuteNMSQuery(cursorLibrenms, query):
@@ -21,14 +22,14 @@ def saveDashboardDOTJSON():
 	#########################################
 	# this module is to save the JSON file
 	##########################################
-	with open('/home/admin/Jay/dashboard.json', 'w') as outfile:
+	with open('/opt/dashboard/html/dashboard.json', 'w') as outfile:
 		json.dump(dashboard, outfile)
 
 def getDashboardDOTJSON():
 	#########################################
 	# this module is to create the structure of the JSON file
 	##########################################
-	dashboard ={"devices":[]}
+	dashboard ={"devices":[], "System":[{"JSONGenTime": str(datetime.now())}]}
 	return(dashboard)
 
 def QueryEnviromental(device_ip, fileName):
