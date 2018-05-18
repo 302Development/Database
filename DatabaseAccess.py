@@ -145,7 +145,9 @@ def QueryNetworkLibreNMS (device_id, port_id):
 	# in the last 5 minutes both up and down per port.
 	##########################################
 	
-	
+	#check poll time of ports
+	query = ("SELECT poll_period from librenms.ports WHERE port_id = ") + (port_id) + (" and device_id = ") + (device_id)
+	pollTime = exicuteNMSQuery(cursorLibrenms, query)
 	
 	#data IN on port (inputs device_id, port_id)
 	query = ("SELECT ifInOctets_delta from librenms.ports WHERE port_id = ") + (port_id) + (" and device_id = ") + (device_id)
@@ -154,7 +156,7 @@ def QueryNetworkLibreNMS (device_id, port_id):
 	#casting to float has issue if it is an array item
 	inOctDelta = inOctDelta[0]
 	#                 data | 5min 2 sec | octs 2 bits| bits 2 kb| kb 2 mb
-	MbsIn = str((((float(inOctDelta) / 300) * 8) /1000) /1000)
+	MbsIn = str((((float(inOctDelta) / pollTime[0]) * 8) /1000) /1000)
 	
 	
 	
@@ -167,7 +169,7 @@ def QueryNetworkLibreNMS (device_id, port_id):
 	#casting to float has issue if it is an array item
 	outOctDelta = outOctDelta[0]
 	#                 data | 5min 2 sec | octs 2 bits| bits 2 kb| kb 2 mb
-	MbsOut = str((((float(outOctDelta) / 300) * 8) /1000) /1000)
+	MbsOut = str((((float(outOctDelta) / pollTime[0]) * 8) /1000) /1000)
 	
 	#this is used to update the JSON variable based on information that has been resturned from the SQL commmands
 	dashboard["devices"].append({
@@ -176,6 +178,34 @@ def QueryNetworkLibreNMS (device_id, port_id):
 	"Mb/sOut": MbsOut
 	})
 
+def QueryNetworkMultiLibreNMS(device_id, port_ids):
+	#check poll time of ports
+	query = ("SELECT poll_period from librenms.ports WHERE port_id = ") + (port_ids[0]) + (" and device_id = ") + (device_id)
+	pollTime = exicuteNMSQuery(cursorLibrenms, query)
+	
+	portCount = 0
+	print ("port multi")
+	outOctDeltaTotal = 0
+	inOctDeltaTotal = 0
+	while portCount < len(port_ids):
+				
+				query = ("SELECT ifInOctets_delta from librenms.ports WHERE port_id = ") + (port_ids[portCount]) + (" and device_id = ") + (device_id)
+				inOctDelta = exicuteNMSQuery(cursorLibrenms, query)
+				inOctDeltaTotal = inOctDeltaTotal + float(inOctDelta[0])
+				
+				query = ("SELECT ifOutOctets_delta from librenms.ports WHERE port_id = ") + (port_ids[portCount]) + (" and device_id = ") + (device_id)
+				outOctDelta = exicuteNMSQuery(cursorLibrenms, query)
+				outOctDeltaTotal = outOctDeltaTotal + float(outOctDelta[0])
+				
+				portCount = portCount + 1
+	MbsIn = str(((((inOctDeltaTotal) / pollTime[0]) * 8) /1000) /1000)
+	MbsOut = str(((((outOctDeltaTotal) / pollTime[0]) * 8) /1000) /1000)
+	
+	dashboard["devices"].append({
+	"type":"network-multi",
+	"Mb/sIn": MbsIn,
+	"Mb/sOut": MbsOut
+	})
 
 def getDeviceConig ():
 	##############################################
@@ -184,7 +214,7 @@ def getDeviceConig ():
 	##############################################
 	
 	#loading devices.json into a variable
-	devices = json.load(open('/home/admin/Jay/devices.json'))
+	devices = json.load(open('/home/admin/Jay/devices-temp.json'))
 	count = 0
 	
 	#this is creating a while loop that will run untill every device listed in devices.json has been loaded into and the calls other
@@ -217,6 +247,12 @@ def getDeviceConig ():
 			#parsing the variable to another function to exicute the SQL commands
 			QueryNetworkLibreNMS(device_id, port_id)
 		
+		elif devicetype == "network-multi":
+			device_id = devices["devices"][count]["device_id"]
+			port_ids = devices["devices"][count]["port_ids"]
+			
+			QueryNetworkMultiLibreNMS(device_id, port_ids)
+
 		elif devicetype == "environmental":
 			#getting eviromental sensors ip and file name to create the URL call
 			device_ip = devices["devices"][count]["ip"]
@@ -241,7 +277,7 @@ def getDeviceConig ():
 
 #conntection to LibreNMS database:
 sessionConnectionLibrenms = mariadb.connect(user='admin',
-                              password='',
+                              password='ICT302Passw0rd@!',
                               host='localhost',
                               database='librenms')
 cursorLibrenms = sessionConnectionLibrenms.cursor()
