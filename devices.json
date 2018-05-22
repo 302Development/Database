@@ -9,12 +9,12 @@
 {
 "type":"network",
 "device_id":"2",
-"port_id":"12"
+"port_ids":["31"]
 },
 {
 "type":"network",
 "device_id":"2",
-"port_id":"10"
+"port_ids":["5"]
 },
 {
 "type":"performance",
@@ -30,6 +30,11 @@
 {
 "type":"power",
 "device_id":"6"
+},
+{
+"type":"network",
+"device_id":"2",
+"port_ids":["5","31"]
 }
 ]
 }
