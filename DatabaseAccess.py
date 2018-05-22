@@ -139,57 +139,21 @@ def QueryPowerLibreNMS (device_id):
 	})
 	
 
-
-def QueryNetworkLibreNMS (device_id, port_id):
-	#########################################
-	# this module is to query the database for data transfered 
-	# in the last 5 minutes both up and down per port.
-	##########################################
-	
-	#check poll time of ports
-	query = ("SELECT poll_period from librenms.ports WHERE port_id = ") + (port_id) + (" and device_id = ") + (device_id)
-	pollTime = exicuteNMSQuery(cursorLibrenms, query)
-	
-	#data IN on port (inputs device_id, port_id)
-	query = ("SELECT ifInOctets_delta from librenms.ports WHERE port_id = ") + (port_id) + (" and device_id = ") + (device_id)
-	inOctDelta = exicuteNMSQuery(cursorLibrenms, query)
-	
-	#casting to float has issue if it is an array item
-	inOctDelta = inOctDelta[0]
-	#                 data | 5min 2 sec | octs 2 bits| bits 2 kb| kb 2 mb
-	MbsIn = str((((float(inOctDelta) / pollTime[0]) * 8) /1000) /1000)
-	
-	
-	
-	
-	
-	#data OUT on port (inputs device_id, port_id)
-	query = ("SELECT ifOutOctets_delta from librenms.ports WHERE port_id = ") + (port_id) + (" and device_id = ") + (device_id)
-	outOctDelta = exicuteNMSQuery(cursorLibrenms, query)
-	
-	#casting to float has issue if it is an array item
-	outOctDelta = outOctDelta[0]
-	#                 data | 5min 2 sec | octs 2 bits| bits 2 kb| kb 2 mb
-	MbsOut = str((((float(outOctDelta) / pollTime[0]) * 8) /1000) /1000)
-	
-	#this is used to update the JSON variable based on information that has been resturned from the SQL commmands
-	dashboard["devices"].append({
-	"type":"network",
-	"Mb/sIn": MbsIn,
-	"Mb/sOut": MbsOut
-	})
-
-def QueryNetworkMultiLibreNMS(device_id, port_ids):
+def QueryNetworkLibreNMS(device_id, port_ids):
 	#check poll time of ports
 	query = ("SELECT poll_period from librenms.ports WHERE port_id = ") + (port_ids[0]) + (" and device_id = ") + (device_id)
 	pollTime = exicuteNMSQuery(cursorLibrenms, query)
 	
+	
+	#this is used to add all of the port values togeather if there are multiple in the port_ids array
 	portCount = 0
-	print ("port multi")
+	print ("network ports")
+	print (port_ids)
 	outOctDeltaTotal = 0
 	inOctDeltaTotal = 0
 	while portCount < len(port_ids):
-				
+				#loops throught the size of the array to add all of the upload and download values togeather
+				#if there is only one it will only go through once
 				query = ("SELECT ifInOctets_delta from librenms.ports WHERE port_id = ") + (port_ids[portCount]) + (" and device_id = ") + (device_id)
 				inOctDelta = exicuteNMSQuery(cursorLibrenms, query)
 				inOctDeltaTotal = inOctDeltaTotal + float(inOctDelta[0])
@@ -202,8 +166,9 @@ def QueryNetworkMultiLibreNMS(device_id, port_ids):
 	MbsIn = str(((((inOctDeltaTotal) / pollTime[0]) * 8) /1000) /1000)
 	MbsOut = str(((((outOctDeltaTotal) / pollTime[0]) * 8) /1000) /1000)
 	
+	#saving data to JSON file
 	dashboard["devices"].append({
-	"type":"network-multi",
+	"type":"network",
 	"Mb/sIn": MbsIn,
 	"Mb/sOut": MbsOut
 	})
@@ -215,7 +180,7 @@ def getDeviceConig ():
 	##############################################
 	
 	#loading devices.json into a variable
-	devices = json.load(open('/home/admin/Jay/devices-temp.json'))
+	devices = json.load(open('/home/admin/Jay/devices.json'))
 	count = 0
 	
 	#this is creating a while loop that will run untill every device listed in devices.json has been loaded into and the calls other
@@ -238,21 +203,14 @@ def getDeviceConig ():
 			QueryPerformanceLibreNMS(device_id, mempool_id,storage_id)
 		
 		
-		
 		elif devicetype == "network":
-			#used to identify device in LibreNMS database to target
+			#getting device ID for query
 			device_id = devices["devices"][count]["device_id"]
-			#used to identify the port or VLAN you want to monitor
-			port_id = devices["devices"][count]["port_id"]
-			
-			#parsing the variable to another function to exicute the SQL commands
-			QueryNetworkLibreNMS(device_id, port_id)
-		
-		elif devicetype == "network-multi":
-			device_id = devices["devices"][count]["device_id"]
+			#getting array of ports to add or if single just read that portt
 			port_ids = devices["devices"][count]["port_ids"]
 			
-			QueryNetworkMultiLibreNMS(device_id, port_ids)
+			#parsing the variable to another function to exicute the SQL commands
+			QueryNetworkLibreNMS(device_id, port_ids)
 
 		elif devicetype == "environmental":
 			#getting eviromental sensors ip and file name to create the URL call
@@ -265,7 +223,7 @@ def getDeviceConig ():
 		elif devicetype == "power":
 			device_id = devices["devices"][count]["device_id"]
 			
-			#parsing the variable to another function to exicute the web calls
+			#parsing the variable to another function to exicute the SQL commands
 			QueryPowerLibreNMS(device_id)
 		
 		#incrementing the count so that it will open the next in device.json file
