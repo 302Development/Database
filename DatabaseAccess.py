@@ -22,7 +22,7 @@ def saveDashboardDOTJSON():
 	#########################################
 	# this module is to save the JSON file
 	##########################################
-	with open('/home/admin/Jay/dashboard-temp.json', 'w') as outfile:
+	with open('/opt/dashboard/html/dashboard.json', 'w') as outfile:
 		json.dump(dashboard, outfile)
 
 def getDashboardDOTJSON():
@@ -128,7 +128,7 @@ def QueryPerformanceLibreNMS (device_id, mempool_id, storage_id, port_gage_IDs):
 	"upTimeDays":{ "value":upTime, "ID": GageIDUptime },
 	"procPercPerCore":{"value":Proc, "ID": GageIDproc},
 	"mem": {"memSize":memSize, "memPercUsed":memPercUsed[0], "ID":GageIDMem},
-	"storage": {"storageSizeGB":storageSize, "storagePercUsed": storagePercUsed[0]}
+	"storage": {"storageSizeGB":storageSize, "storagePercUsed": storagePercUsed[0], "ID":GageIDStorage}
 	})
 	
 								  
@@ -202,7 +202,7 @@ def getDeviceConig ():
 	##############################################
 	
 	#loading devices.json into a variable
-	devices = json.load(open('/home/admin/Jay/devices-temp.json'))
+	devices = json.load(open('/home/admin/Jay/devices.json'))
 	count = 0
 	
 	#this is creating a while loop that will run untill every device listed in devices.json has been loaded into and the calls other
